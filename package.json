@@ -1,0 +1,22 @@
+{
+  "name": "spotify_turner",
+  "version": "1.0.0",
+  "description": "A turntable for spotify (or more streaming platforms)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "spotify-web-api-node": "^5.0.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0"
+  },
+  "author": "Leon Gohn",
+  "license": "ISC"
+}

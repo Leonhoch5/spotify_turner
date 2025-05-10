@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Vinyl Player - Login</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #121212 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            text-align: center;
+            padding: 40px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #1DB954;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        .logo {
+            width: 120px;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            background-color: #1DB954;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .login-btn:hover {
+            background-color: #1ed760;
+            transform: scale(1.05);
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #1DB954;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-message {
+            color: #ff4d4d;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <svg class="logo" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#1DB954"
+                d="M10 0C4.5 0 0 4.5 0 10s4.5 10 10 10 10-4.5 10-10S15.5 0 10 0zm4.7 14.5c-.3.4-.8.5-1.2.2-2.6-1.6-5.8-2-9.6-1.1-.5.1-.9-.2-1-.7-.1-.5.2-.9.7-1 4.2-.9 7.8-.5 10.7 1.3.5.2.6.7.4 1.1zm1.2-2.7c-.3.4-.9.5-1.3.3-3-1.8-7.5-2.4-11-1.3-.5.1-1-.2-1.1-.7-.1-.5.2-1 .7-1.1 4-1.2 9-.6 12.4 1.5.4.2.5.8.3 1.2zm.1-2.8C12.4 5.3 7.6 5 4.2 6.2c-.6.2-1.2-.1-1.4-.7-.2-.6.1-1.2.7-1.4 3.9-1.3 9.2-1 13.1 1.5.6.3.8.9.5 1.5-.3.4-.9.6-1.4.3z" />
+        </svg>
+        <h1>Vinyl Player</h1>
+        <p>Experience Spotify with a classic vinyl interface</p>
+        <button id="loginBtn" class="login-btn">Login with Spotify</button>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Connecting to Spotify...</p>
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginBtn.addEventListener('click', async () => {
+            loginBtn.style.display = 'none';
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+
+            try {
+                const authUrl = await window.electronAPI.getAuthUrl();
+                const authWindow = window.open(authUrl, '_blank', 'width=600,height=800');
+
+                if (!authWindow) {
+                    throw new Error('Popup was blocked. Please allow popups for this site.');
+                }
+            } catch (err) {
+                showError(err.message);
+            }
+        });
+
+        window.electronAPI.onAuthSuccess((event, { accessToken, refreshToken, expiresIn }) => {
+            console.log('Auth success, tokens received:', { accessToken, refreshToken });
+            localStorage.setItem('spotifyAccessToken', accessToken);
+            localStorage.setItem('spotifyRefreshToken', refreshToken);
+            window.location.href = 'player.html';
+        });
+
+        window.electronAPI.onAuthError((event, message) => {
+            showError(message);
+        });
+
+        function showError(message) {
+            loading.style.display = 'none';
+            loginBtn.style.display = 'block';
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

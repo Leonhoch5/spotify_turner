@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Vinyl Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #121212;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            user-select: none;
+            touch-action: none;
+            color: white;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar styles */
+        .sidebar {
+            z-index: 100;
+            width: 300px;
+            background-color: #000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .user-email {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .nav-menu {
+            z-index: 100;
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            padding: 10px 0;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .nav-item:hover {
+            opacity: 1;
+        }
+
+        .nav-item.active {
+            opacity: 1;
+            color: #1DB954;
+        }
+
+        .playlist-header {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+
+        .playlist-list {
+            list-style: none;
+            height: calc(100vh - 350px);
+            overflow-y: auto;
+            margin-right: -20px;
+            padding-right: 20px;
+        }
+
+        .playlist-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .playlist-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .playlist-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .playlist-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-radius: 4px;
+            margin-bottom: 2px;
+        }
+
+        .playlist-item:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .playlist-item.active {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #1DB954;
+        }
+
+        .playlist-item img {
+            width: 40px;
+            height: 40px;
+            margin-right: 12px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .playlist-item .playlist-details {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .playlist-item .playlist-name {
+            font-weight: 500;
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item .playlist-tracks {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* Main player styles */
+        .player-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .now-playing {
+            height: 70px;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .track-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .track-cover {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .track-details {
+            flex: 1;
+        }
+
+        .track-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .track-artist {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .control-btn:hover {
+            opacity: 1;
+        }
+
+        .control-btn.play-pause {
+            font-size: 30px;
+            color: #1DB954;
+        }
+
+        .progress-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 30px;
+        }
+
+        .progress-time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            width: 40px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #1DB954;
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background-color: #1DB954;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .progress-bar:hover .progress-fill::after {
+            opacity: 1;
+        }
+
+        /* Vinyl player styles */
+        .vinyl-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .turntable {
+            z-index: 1;
+            right: 50%;
+            position: relative;
+            width: 125%;
+            height: 125%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .vinyl-container {
+            position: relative;
+            width: 60vmin;
+            height: 60vmin;
+            cursor: grab;
+        }
+
+        .vinyl {
+            bottom: 12%;
+            position: relative;
+            width: 125%;
+            height: 125%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #111 0%, #333 100%);
+            box-shadow:
+                0 0 30px rgba(0, 0, 0, 0.8),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transform: rotate(0deg);
+            transition: transform 0.05s linear;
+        }
+
+        .vinyl::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-radial-gradient(circle at center,
+                    transparent,
+                    transparent 10px,
+                    rgba(255, 255, 255, 0.08) 14px,
+                    rgba(255, 255, 255, 0.084) 15px);
+        }
+
+        .label {
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #c12727, #e67e22);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow:
+                inset 0 0 15px rgba(0, 0, 0, 0.5),
+                0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+        }
+
+        .center-hole {
+            width: 5%;
+            height: 5%;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            z-index: 3;
+        }
+
+        .vinyl-info {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 1.8vmin;
+            color: #333;
+            z-index: 4;
+            padding: 15%;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .vinyl-info .title {
+            font-weight: bold;
+            margin-bottom: 0.8vmin;
+            font-size: 2.5vmin;
+            color: #222;
+        }
+
+        .vinyl-info .artist {
+            margin-bottom: 1.5vmin;
+            font-size: 2.2vmin;
+            color: #444;
+        }
+
+        .vinyl-info .year {
+            font-size: 1.8vmin;
+            color: #666;
+        }
+
+        .reflection {
+            position: absolute;
+            top: 15%;
+            left: 25%;
+            width: 25%;
+            height: 12%;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            transform: rotate(30deg);
+            z-index: 1;
+            filter: blur(2px);
+        }
+
+        .shine {
+            position: absolute;
+            top: 20%;
+            right: 20%;
+            width: 15%;
+            height: 8%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 1;
+            filter: blur(1px);
+        }
+
+        .needle-arm {
+            position: absolute;
+            top: 7%;
+            right: 0%;
+            width: 40%;
+            height: 40%;
+            transform-origin: right center;
+            z-index: 10;
+            pointer-events: none;
+            transform: rotate(-20deg);
+            transition: transform 0.5s ease;
+        }
+
+        .needle {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform-origin: right center;
+            filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.5));
+        }
+
+        .needle-arm.playing {
+            transform: rotate(-5deg);
+        }
+
+        /* Volume control */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 30px;
+        }
+
+        .volume-icon {
+            opacity: 0.7;
+        }
+
+        .volume-bar {
+            width: 100px;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .volume-fill {
+            height: 100%;
+            background-color: #1DB954;
+            border-radius: 2px;
+            width: 80%;
+        }
+
+        /* Playlist content styles */
+        .playlist-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, #121212 100%);
+            display: none;
+            /* Initially hidden */
+        }
+
+        .playlist-header-content {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .playlist-cover {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .playlist-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .playlist-info h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .playlist-info p {
+            margin: 5px 0;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .tracks-container {
+            width: 100%;
+        }
+
+        .tracks-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        .tracks-table thead {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tracks-table th {
+            text-align: left;
+            padding: 10px;
+            font-weight: normal;
+        }
+
+        .tracks-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tracks-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .track-number {
+            opacity: 0.7;
+            width: 40px;
+        }
+
+        .track-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .track-album-cover {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+        }
+
+        .track-duration {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="user-info">
+                <img id="userAvatar" class="user-avatar"
+                    src="https://i.scdn.co/image/ab6775700000ee85178a5c2497b5c7c97a8040f6" alt="User">
+                <div>
+                    <div id="userName" class="user-name">User Name</div>
+                    <div id="userEmail" class="user-email">user@example.com</div>
+                </div>
+            </div>
+
+            <ul class="nav-menu">
+                <li id="backToPlayer" class="nav-item" style="display: none;">Back to Player</li>
+                <li class="nav-item active">Home</li>
+                <li class="nav-item">Search</li>
+                <li class="nav-item">Your Library</li>
+            </ul>
+
+            <div class="playlist-header">Playlists</div>
+            <ul id="playlistContainer" class="playlist-list">
+                <!-- Playlists will be loaded here -->
+            </ul>
+        </div>
+
+        <div class="player-main">
+            <div class="now-playing">
+                <div class="track-info">
+                    <img id="nowPlayingCover" class="track-cover"
+                        src="https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228" alt="Album Cover">
+                    <div class="track-details">
+                        <div id="nowPlayingTrack" class="track-name">Track Name</div>
+                        <div id="nowPlayingArtist" class="track-artist">Artist Name</div>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="control-btn">⏮</button>
+                    <button id="playPauseBtn" class="control-btn play-pause">▶</button>
+                    <button class="control-btn">⏭</button>
+                </div>
+
+                <div class="progress-container">
+                    <div id="currentTime" class="progress-time">0:00</div>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="duration" class="progress-time">3:30</div>
+                </div>
+
+                <div class="volume-control">
+                    <span class="volume-icon">🔊</span>
+                    <div class="volume-bar">
+                        <div class="volume-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vinyl-section">
+                <div class="turntable">
+                    <div class="vinyl-container">
+                        <div class="vinyl">
+                            <div class="reflection"></div>
+                            <div class="shine"></div>
+                            <div class="label">
+                                <div class="vinyl-info">
+                                    <div id="vinylTrack" class="title">TRACK</div>
+                                    <div id="vinylArtist" class="artist">ARTIST</div>
+                                    <div class="year">2025</div>
+                                </div>
+                                <div class="center-hole"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="needleArm" class="needle-arm">
+                        <img class="needle" src="assets/needle.png" alt="Needle">
+                    </div>
+                </div>
+            </div>
+
+            <div class="playlist-content">
+                <div class="playlist-header-content">
+                    <img id="playlistCover" class="playlist-cover" src="" alt="Playlist Cover">
+                    <div class="playlist-info">
+                        <h2 id="playlistName">Playlist Name</h2>
+                        <p id="playlistDescription">Playlist description</p>
+                        <p id="playlistOwner">By Owner</p>
+                        <p id="playlistStats">0 songs</p>
+                    </div>
+                </div>
+                <div class="tracks-container">
+                    <table class="tracks-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Artist</th>
+                                <th>Album</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tracksList">
+                            <!-- Tracks will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spotify Web Playback SDK -->
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script>
+        // Vinyl rotation logic
+        const vinyl = document.querySelector('.vinyl');
+        const vinylContainer = document.querySelector('.vinyl-container');
+        const needleArm = document.getElementById('needleArm');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+
+        // Spotify elements
+        const vinylTrack = document.getElementById('vinylTrack');
+        const vinylArtist = document.getElementById('vinylArtist');
+        const nowPlayingTrack = document.getElementById('nowPlayingTrack');
+        const nowPlayingArtist = document.getElementById('nowPlayingArtist');
+        const nowPlayingCover = document.getElementById('nowPlayingCover');
+        const progressFill = document.getElementById('progressFill');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const userAvatar = document.getElementById('userAvatar');
+
+        // Playlist content elements
+        const playlistContent = document.querySelector('.playlist-content');
+        const playlistCover = document.getElementById('playlistCover');
+        const playlistName = document.getElementById('playlistName');
+        const playlistDescription = document.getElementById('playlistDescription');
+        const playlistOwner = document.getElementById('playlistOwner');
+        const playlistStats = document.getElementById('playlistStats');
+        const tracksList = document.getElementById('tracksList');
+        const backToPlayer = document.getElementById('backToPlayer');
+
+        let isDragging = false;
+        let startAngle = 0;
+        let currentAngle = 0;
+        let centerX, centerY, radius;
+        let spinVelocity = 0;
+        let lastTime = 0;
+        let lastAngle = 0;
+
+        console.log('Player page loaded');
+        console.log('Access token in localStorage:', localStorage.getItem('spotifyAccessToken'));
+
+        let player;
+        let deviceId;
+        const accessToken = localStorage.getItem('spotifyAccessToken');
+        const refreshToken = localStorage.getItem('spotifyRefreshToken');
+
+        if (!accessToken) {
+            console.error('No access token found, redirecting to login');
+            window.location.href = 'index.html';
+            throw new Error('Missing access token');
+        }
+
+        // Test API connection
+        async function testApiConnection() {
+            try {
+                const response = await fetch('https://api.spotify.com/v1/me', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+                const data = await response.json();
+                console.log('Spotify API user data:', data);
+                return data;
+            } catch (err) {
+                console.error('API test failed:', err);
+                localStorage.removeItem('spotifyAccessToken');
+                localStorage.removeItem('spotifyRefreshToken');
+                window.location.href = 'index.html';
+                throw err;
+            }
+        }
+
+        // Initialize vinyl geometry
+        function updateVinylGeometry() {
+            const rect = vinylContainer.getBoundingClientRect();
+            centerX = rect.left + rect.width / 2;
+            centerY = rect.top + rect.height / 2;
+            radius = rect.width / 2;
+        }
+
+        // Get angle from center to point
+        function getAngle(x, y) {
+            return Math.atan2(y - centerY, x - centerX) * 180 / Math.PI;
+        }
+
+        // Update vinyl rotation
+        function updateRotation(angle) {
+            currentAngle = angle;
+            vinyl.style.transform = `rotate(${currentAngle}deg)`;
+        }
+
+        // Spin animation
+        function spin(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            if (Math.abs(spinVelocity) > 0.1) {
+                currentAngle += spinVelocity * deltaTime / 16;
+                updateRotation(currentAngle);
+
+                // Apply friction
+                spinVelocity *= 0.995 - (0.001 * deltaTime);
+
+                requestAnimationFrame(spin);
+            }
+        }
+
+        // Event listeners for vinyl dragging
+        vinylContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateVinylGeometry();
+            const angle = getAngle(e.clientX, e.clientY);
+            startAngle = currentAngle - angle;
+            vinylContainer.style.cursor = 'grabbing';
+            lastAngle = angle;
+            lastTime = performance.now();
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const angle = getAngle(e.clientX, e.clientY);
+            const now = performance.now();
+            const deltaTime = now - lastTime;
+
+            if (deltaTime > 0) {
+                const deltaAngle = angle - lastAngle;
+                spinVelocity = deltaAngle / deltaTime * 16; // Normalize to 60fps
+                lastAngle = angle;
+                lastTime = now;
+            }
+
+            currentAngle = startAngle + angle;
+            updateRotation(currentAngle);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                vinylContainer.style.cursor = 'grab';
+                requestAnimationFrame(spin);
+            }
+        });
+
+        // Touch support
+        vinylContainer.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateVinylGeometry();
+            const angle = getAngle(e.touches[0].clientX, e.touches[0].clientY);
+            startAngle = currentAngle - angle;
+            lastAngle = angle;
+            lastTime = performance.now();
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+
+            const angle = getAngle(e.touches[0].clientX, e.touches[0].clientY);
+            const now = performance.now();
+            const deltaTime = now - lastTime;
+
+            if (deltaTime > 0) {
+                const deltaAngle = angle - lastAngle;
+                spinVelocity = deltaAngle / deltaTime * 16;
+                lastAngle = angle;
+                lastTime = now;
+            }
+
+            currentAngle = startAngle + angle;
+            updateRotation(currentAngle);
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isDragging) {
+                isDragging = false;
+                requestAnimationFrame(spin);
+            }
+        });
+
+        // Initialize
+        updateVinylGeometry();
+        window.addEventListener('resize', updateVinylGeometry);
+
+        // Format time (seconds to MM:SS)
+        function formatTime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Show playlist content
+        async function showPlaylistContent(playlist) {
+            try {
+                // Hide vinyl section and show playlist content
+                document.querySelector('.vinyl-section').style.display = 'none';
+                playlistContent.style.display = 'block';
+                backToPlayer.style.display = 'block';
+
+                // Update playlist header info
+                playlistCover.src = playlist.images.length > 0 ? playlist.images[0].url : 'https://via.placeholder.com/200';
+                playlistName.textContent = playlist.name;
+                playlistDescription.textContent = playlist.description || 'No description';
+                playlistOwner.textContent = `By ${playlist.owner.display_name}`;
+                playlistStats.textContent = `${playlist.tracks.total} songs`;
+
+                // Load tracks
+                let tracks = [];
+                let url = playlist.tracks.href;
+
+                // Handle pagination to get all tracks
+                while (url) {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    const data = await response.json();
+                    tracks = tracks.concat(data.items);
+                    url = data.next;
+                }
+
+                // Display tracks
+                tracksList.innerHTML = '';
+                tracks.forEach((item, index) => {
+                    if (!item.track) return; // Skip null tracks
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="track-number">${index + 1}</td>
+                        <td>
+                            <div class="track-title">
+                                <img class="track-album-cover" src="${item.track.album.images.find(img => img.height === 64)?.url || 'https://via.placeholder.com/40'}" alt="${item.track.album.name}">
+                                ${item.track.name}
+                            </div>
+                        </td>
+                        <td>${item.track.artists.map(artist => artist.name).join(', ')}</td>
+                        <td>${item.track.album.name}</td>
+                        <td class="track-duration">${formatTime(item.track.duration_ms)}</td>
+                    `;
+
+                    // Add click handler to play track
+                    tr.addEventListener('click', () => {
+                        player.getCurrentState().then(state => {
+                            if (!state) return;
+
+                            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    context_uri: playlist.uri,
+                                    offset: { position: index }
+                                })
+                            });
+                        });
+                    });
+
+                    tracksList.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error loading playlist content:', error);
+            }
+        }
+        async function initializePlayer(token) {
+            player = new Spotify.Player({
+                name: 'Vinyl Player',
+                getOAuthToken: async cb => {
+                    try {
+                        // Try with current token first
+                        cb(token);
+
+                        // Verify token is still valid
+                        const response = await fetch('https://api.spotify.com/v1/me', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (!response.ok) {
+                            // Token expired, refresh it
+                            const newToken = await refreshAccessToken();
+                            cb(newToken);
+                            localStorage.setItem('spotifyAccessToken', newToken);
+                        }
+                    } catch (error) {
+                        console.error('Token refresh failed:', error);
+                        // Redirect to login
+                        window.location.href = 'index.html';
+                    }
+                },
+                volume: 0.5
+            });
+        }
+        // Load playlists function
+        async function loadPlaylists() {
+            try {
+                // First, get user info
+                const userResponse = await fetch('https://api.spotify.com/v1/me', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                const userData = await userResponse.json();
+
+                // Update user info in the UI
+                userName.textContent = userData.display_name || 'Spotify User';
+                userEmail.textContent = userData.email || 'No email available';
+                if (userData.images && userData.images.length > 0) {
+                    userAvatar.src = userData.images[0].url;
+                }
+
+                // Then get playlists
+                const playlistsResponse = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                const playlistsData = await playlistsResponse.json();
+                console.log('Playlists data:', playlistsData);
+
+                // Clear existing playlists
+                playlistContainer.innerHTML = '';
+
+                // Create a "Liked Songs" playlist item
+                const likedSongsItem = document.createElement('li');
+                likedSongsItem.className = 'playlist-item';
+                likedSongsItem.innerHTML = `
+                    <img src="https://misc.scdn.co/liked-songs/liked-songs-64.png" alt="Liked Songs">
+                    <div class="playlist-details">
+                        <div class="playlist-name">Liked Songs</div>
+                        <div class="playlist-tracks">Your liked tracks</div>
+                    </div>
+                `;
+                likedSongsItem.addEventListener('click', () => {
+                    document.querySelectorAll('.playlist-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    likedSongsItem.classList.add('active');
+
+                    fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            context_uri: 'spotify:collection'
+                        })
+                    });
+                });
+                playlistContainer.appendChild(likedSongsItem);
+
+                // Add user's playlists
+                playlistsData.items.forEach(playlist => {
+                    const li = document.createElement('li');
+                    li.className = 'playlist-item';
+                    li.innerHTML = `
+                        <img src="${playlist.images.length > 0 ? playlist.images[0].url : 'https://via.placeholder.com/64'}" alt="${playlist.name}">
+                        <div class="playlist-details">
+                            <div class="playlist-name">${playlist.name}</div>
+                            <div class="playlist-tracks">${playlist.tracks.total} tracks</div>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        document.querySelectorAll('.playlist-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        li.classList.add('active');
+                        showPlaylistContent(playlist);
+
+                        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                context_uri: playlist.uri
+                            })
+                        });
+                    });
+                    playlistContainer.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error loading playlists:', error);
+            }
+        }
+
+        // Back to player button
+        backToPlayer.addEventListener('click', () => {
+            playlistContent.style.display = 'none';
+            document.querySelector('.vinyl-section').style.display = 'flex';
+            backToPlayer.style.display = 'none';
+        });
+
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            console.log('Web Playback SDK ready');
+            initializePlayer(accessToken);
+
+            // Error listeners
+            player.addListener('initialization_error', ({ message }) => {
+                console.error('Init error:', message);
+            });
+
+            player.addListener('authentication_error', ({ message }) => {
+                console.error('Auth error:', message);
+                localStorage.removeItem('spotifyAccessToken');
+                window.location.href = 'index.html';
+            });
+
+            player.addListener('account_error', ({ message }) => {
+                console.error('Account error:', message);
+            });
+
+            player.addListener('playback_error', ({ message }) => {
+                console.error('Playback error:', message);
+            });
+
+            // Ready
+            player.addListener('ready', ({ device_id }) => {
+                console.log('Ready with Device ID', device_id);
+                deviceId = device_id;
+
+                // Transfer playback to this device
+                fetch('https://api.spotify.com/v1/me/player', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_ids: [device_id],
+                        play: false
+                    })
+                })
+            });
+
+            // Not Ready
+            player.addListener('not_ready', ({ device_id }) => {
+                console.error('Init error:', message);
+                // Try refreshing token and reinitializing
+                refreshAccessToken().then(newToken => {
+                    initializePlayer(newToken);
+                });
+            });
+
+            // Playback status updates
+            player.addListener('player_state_changed', state => {
+                if (!state) return;
+
+                const { current_track, position, duration, paused } = state.track_window;
+
+                // Update track info
+                vinylTrack.textContent = current_track.name;
+                vinylArtist.textContent = current_track.artists.map(a => a.name).join(', ');
+                nowPlayingTrack.textContent = current_track.name;
+                nowPlayingArtist.textContent = current_track.artists.map(a => a.name).join(', ');
+                nowPlayingCover.src = current_track.album.images[0].url;
+
+                // Update progress
+                const progressPercent = (position / duration) * 100;
+                progressFill.style.width = `${progressPercent}%`;
+                currentTimeEl.textContent = formatTime(position);
+                durationEl.textContent = formatTime(duration);
+
+                // Update play/pause button
+                playPauseBtn.textContent = paused ? '▶' : '⏸';
+
+                // Update needle position
+                if (paused) {
+                    needleArm.classList.remove('playing');
+                } else {
+                    needleArm.classList.add('playing');
+
+                    // Auto-spin vinyl when playing
+                    if (Math.abs(spinVelocity) < 0.5) {
+                        spinVelocity = 0.6;
+                        requestAnimationFrame(spin);
+                    }
+                }
+            });
+
+            // Connect to the player
+            player.connect().then(success => {
+                if (success) {
+                    console.log('The Web Playback SDK successfully connected to Spotify!');
+                    loadPlaylists();
+                } else {
+                    console.error('Failed to connect to Spotify');
+                }
+            });
+        };
+
+        // Play/Pause control
+        playPauseBtn.addEventListener('click', () => {
+            player.togglePlay();
+        });
+
+        // Progress bar click
+        document.querySelector('.progress-bar').addEventListener('click', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+
+            player.getCurrentState().then(state => {
+                if (!state) return;
+
+                const duration = state.track_window.current_track.duration_ms;
+                const position = Math.floor(duration * percent);
+
+                player.seek(position);
+            });
+        });
+
+        // Volume control
+        document.querySelector('.volume-bar').addEventListener('click', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            document.querySelector('.volume-fill').style.width = `${percent * 100}%`;
+            player.setVolume(percent);
+        });
+
+        // Initial API connection test
+        testApiConnection().catch(console.error);
+
+    </script>
+</body>
+
+</html>
