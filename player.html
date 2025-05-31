@@ -740,7 +740,7 @@
             throw new Error('Missing access token');
         }
 
-        // Test API connection
+        // Test API connection and check for Premium
         async function testApiConnection() {
             try {
                 const response = await fetch('https://api.spotify.com/v1/me', {
@@ -753,6 +753,14 @@
 
                 const data = await response.json();
                 console.log('Spotify API user data:', data);
+
+                // Check if user is premium
+                if (data.product !== 'premium') {
+                    alert('Sorry, you need a Spotify Premium account to use this app.');
+                    window.location.href = 'index.html';
+                    throw new Error('User is not premium');
+                }
+
                 return data;
             } catch (err) {
                 console.error('API test failed:', err);
@@ -938,20 +946,20 @@
 
                     // Add click handler to play track
                     tr.addEventListener('click', () => {
-                        player.getCurrentState().then(state => {
-                            if (!state) return;
-
-                            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    context_uri: playlist.uri,
-                                    offset: { position: index }
-                                })
-                            });
+                        if (!deviceId) {
+                            alert('Spotify player is not ready yet. Please wait a moment and try again.');
+                            return;
+                        }
+                        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                context_uri: playlist.uri,
+                                offset: { position: index }
+                            })
                         });
                     });
 
@@ -961,34 +969,128 @@
                 console.error('Error loading playlist content:', error);
             }
         }
+
+        // Check for EME support before initializing Spotify Player
+        function isEMESupported() {
+            // Widevine is required by Spotify
+            return !!(window.navigator.requestMediaKeySystemAccess);
+        }
+
         async function initializePlayer(token) {
-            player = new Spotify.Player({
+            if (!isEMESupported()) {
+                alert(
+                    "Your browser does not support the DRM technology required for Spotify playback.\n\n" +
+                    "Please use the latest version of Chrome, Edge, or Firefox, and ensure DRM/protected content is enabled.\n" +
+                    "Incognito/private mode may also block playback."
+                );
+                return;
+            }
+            if (window.player) {
+                // If already initialized, don't re-create
+                return;
+            }
+            // Assign to both window.player and player
+            window.player = new Spotify.Player({
                 name: 'Vinyl Player',
-                getOAuthToken: async cb => {
-                    try {
-                        // Try with current token first
-                        cb(token);
-
-                        // Verify token is still valid
-                        const response = await fetch('https://api.spotify.com/v1/me', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-
-                        if (!response.ok) {
-                            // Token expired, refresh it
-                            const newToken = await refreshAccessToken();
-                            cb(newToken);
-                            localStorage.setItem('spotifyAccessToken', newToken);
-                        }
-                    } catch (error) {
-                        console.error('Token refresh failed:', error);
-                        // Redirect to login
-                        window.location.href = 'index.html';
-                    }
-                },
+                getOAuthToken: cb => cb(token),
                 volume: 0.5
             });
+            player = window.player;
+
+            player.addListener('initialization_error', (e) => {
+                console.error('Init error:', e.message, e);
+                alert(
+                    "Failed to initialize Spotify player.\n\n" +
+                    "Reason: " + e.message + "\n\n" +
+                    "Try using Chrome, Edge, or Firefox (not in private mode), and ensure DRM/protected content is enabled in your browser settings."
+                );
+            });
+
+            player.addListener('authentication_error', ({ message }) => {
+                console.error('Auth error:', message);
+                localStorage.removeItem('spotifyAccessToken');
+                window.location.href = 'index.html';
+            });
+
+            player.addListener('account_error', ({ message }) => {
+                console.error('Account error:', message);
+            });
+
+            player.addListener('playback_error', ({ message }) => {
+                console.error('Playback error:', message);
+            });
+
+            // Ready
+            player.addListener('ready', ({ device_id }) => {
+                console.log('Ready with Device ID', device_id);
+                window.deviceId = device_id;
+
+                // Transfer playback to this device
+                fetch('https://api.spotify.com/v1/me/player', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_ids: [device_id],
+                        play: false
+                    })
+                });
+            });
+
+            // Not Ready
+            player.addListener('not_ready', ({ device_id }) => {
+                console.log('Device ID has gone offline', device_id);
+            });
+
+            // Playback status updates
+            player.addListener('player_state_changed', state => {
+                if (!state) return;
+
+                const { current_track, position, duration, paused } = state.track_window;
+
+                // Update track info
+                vinylTrack.textContent = current_track.name;
+                vinylArtist.textContent = current_track.artists.map(a => a.name).join(', ');
+                nowPlayingTrack.textContent = current_track.name;
+                nowPlayingArtist.textContent = current_track.artists.map(a => a.name).join(', ');
+                nowPlayingCover.src = current_track.album.images[0].url;
+
+                // Update progress
+                const progressPercent = (position / duration) * 100;
+                progressFill.style.width = `${progressPercent}%`;
+                currentTimeEl.textContent = formatTime(position);
+                durationEl.textContent = formatTime(duration);
+
+                // Update play/pause button
+                playPauseBtn.textContent = paused ? '▶' : '⏸';
+
+                // Update needle position
+                if (paused) {
+                    needleArm.classList.remove('playing');
+                } else {
+                    needleArm.classList.add('playing');
+
+                    // Auto-spin vinyl when playing
+                    if (Math.abs(spinVelocity) < 0.5) {
+                        spinVelocity = 0.6;
+                        requestAnimationFrame(spin);
+                    }
+                }
+            });
+
+            // Connect the player (this is what makes it show up in Spotify Connect)
+            player.connect().then(success => {
+                if (success) {
+                    console.log('The Web Playback SDK successfully connected to Spotify!');
+                    loadPlaylists();
+                } else {
+                    console.error('Failed to connect to Spotify');
+                }
+            });
         }
+
         // Load playlists function
         async function loadPlaylists() {
             try {
@@ -1066,6 +1168,10 @@
                         li.classList.add('active');
                         showPlaylistContent(playlist);
 
+                        if (!deviceId) {
+                            alert('Spotify player is not ready yet. Please wait a moment and try again.');
+                            return;
+                        }
                         fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
                             method: 'PUT',
                             headers: {
@@ -1094,99 +1200,6 @@
         window.onSpotifyWebPlaybackSDKReady = () => {
             console.log('Web Playback SDK ready');
             initializePlayer(accessToken);
-
-            // Error listeners
-            player.addListener('initialization_error', ({ message }) => {
-                console.error('Init error:', message);
-            });
-
-            player.addListener('authentication_error', ({ message }) => {
-                console.error('Auth error:', message);
-                localStorage.removeItem('spotifyAccessToken');
-                window.location.href = 'index.html';
-            });
-
-            player.addListener('account_error', ({ message }) => {
-                console.error('Account error:', message);
-            });
-
-            player.addListener('playback_error', ({ message }) => {
-                console.error('Playback error:', message);
-            });
-
-            // Ready
-            player.addListener('ready', ({ device_id }) => {
-                console.log('Ready with Device ID', device_id);
-                deviceId = device_id;
-
-                // Transfer playback to this device
-                fetch('https://api.spotify.com/v1/me/player', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        device_ids: [device_id],
-                        play: false
-                    })
-                })
-            });
-
-            // Not Ready
-            player.addListener('not_ready', ({ device_id }) => {
-                console.error('Init error:', message);
-                // Try refreshing token and reinitializing
-                refreshAccessToken().then(newToken => {
-                    initializePlayer(newToken);
-                });
-            });
-
-            // Playback status updates
-            player.addListener('player_state_changed', state => {
-                if (!state) return;
-
-                const { current_track, position, duration, paused } = state.track_window;
-
-                // Update track info
-                vinylTrack.textContent = current_track.name;
-                vinylArtist.textContent = current_track.artists.map(a => a.name).join(', ');
-                nowPlayingTrack.textContent = current_track.name;
-                nowPlayingArtist.textContent = current_track.artists.map(a => a.name).join(', ');
-                nowPlayingCover.src = current_track.album.images[0].url;
-
-                // Update progress
-                const progressPercent = (position / duration) * 100;
-                progressFill.style.width = `${progressPercent}%`;
-                currentTimeEl.textContent = formatTime(position);
-                durationEl.textContent = formatTime(duration);
-
-                // Update play/pause button
-                playPauseBtn.textContent = paused ? '▶' : '⏸';
-
-                // Update needle position
-                if (paused) {
-                    needleArm.classList.remove('playing');
-                } else {
-                    needleArm.classList.add('playing');
-
-                    // Auto-spin vinyl when playing
-                    if (Math.abs(spinVelocity) < 0.5) {
-                        spinVelocity = 0.6;
-                        requestAnimationFrame(spin);
-                    }
-                }
-            });
-
-            // Connect to the player
-            player.connect().then(success => {
-                if (success) {
-                    console.log('The Web Playback SDK successfully connected to Spotify!');
-                    loadPlaylists();
-                } else {
-                    console.error('Failed to connect to Spotify');
-                }
-            });
         };
 
         // Play/Pause control
@@ -1218,7 +1231,11 @@
         });
 
         // Initial API connection test
-        testApiConnection().catch(console.error);
+        testApiConnection()
+            .then(() => {
+                loadPlaylists();
+            })
+            .catch(console.error);
 
     </script>
 </body>

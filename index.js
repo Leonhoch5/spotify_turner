@@ -8,8 +8,8 @@ let mainWindow;
 let authServer;
 require('dotenv').config();
 
-const clientId = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
+const clientId = process.env.SPOTIFY_CLIENT_ID;
+const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const redirectUri = 'http://127.0.0.1:8888/callback';
 
 function createWindow() {
@@ -22,6 +22,11 @@ function createWindow() {
             contextIsolation: true
         }
     });
+
+    // Spoof user agent to Chrome
+    mainWindow.webContents.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    );
 
     mainWindow.loadFile('index.html');
     startAuthServer();
@@ -106,3 +111,4 @@ ipcMain.handle('get-auth-url', () => {
     });
     return spotifyApi.createAuthorizeURL(scopes, 'state', true);
 });
+
