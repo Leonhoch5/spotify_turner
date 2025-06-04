@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Spotify Turner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background: linear-gradient(135deg, #0f2027, #2c5364 80%);
+            color: #00ffea;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .cyber-box {
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid #00ffea;
+            box-shadow: 0 0 24px #00ffea88, 0 0 8px #fff2;
+            border-radius: 12px;
+            padding: 2rem 3rem;
+            text-align: center;
+            max-width: 400px;
+            margin: 2rem;
+            position: relative;
+        }
+
+        .cyber-title {
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 8px #00ffea, 0 0 2px #fff;
+            animation: flicker 2s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            95% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .cyber-desc {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #baffff;
+        }
+
+        .download-btn {
+            background: linear-gradient(90deg, #00ffea 40%, #00bfff 100%);
+            color: #0f2027;
+            border: none;
+            border-radius: 6px;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 12px #00ffea88;
+            transition: transform 0.1s, box-shadow 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.07) rotate(-2deg);
+            box-shadow: 0 0 24px #00ffea;
+            background: linear-gradient(90deg, #00bfff 40%, #00ffea 100%);
+        }
+
+        .cyber-footer {
+            margin-top: 2rem;
+            color: #00ffea99;
+            font-size: 0.95rem;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .matrix {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas class="matrix"></canvas>
+    <div class="cyber-box">
+        <div class="cyber-title">Spotify Turner</div>
+        <div class="cyber-desc">
+            Welcome!<br>
+            Ready to <b>turn</b> your Spotify experience classy? <br>
+        </div>
+
+        <button class="download-btn" onclick="window.location.href='spotify_turner.zip';">
+            <span>&#128187; Download Now</span>
+        </button>
+    </div>
+    <div class="cyber-footer">
+        &copy; 2025 Spotify Turner. <br>
+        <span style="color:#ff00ff;">Made with</span> <span style="color:#ff0000;">♥</span> by <a
+            href="github.com/Leonhoch5" style="color:#00ffea;">Leon</a>.<br>
+        <span style="font-size:0.8em;">Not affiliated with Spotify. All glitches intentional haha :(.</span>
+    </div>
+    <script>
+        // Matrix rain effect
+        const canvas = document.querySelector('.matrix');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        const letters = 'SPOTIFYTURNER0123456789!@#$%^&*';
+        const fontSize = 18;
+        const columns = Math.floor(width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(15,32,39,0.15)';
+            ctx.fillRect(0, 0, width, height);
+            ctx.font = fontSize + "px 'Share Tech Mono', monospace";
+            ctx.fillStyle = '#00ffea';
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters[Math.floor(Math.random() * letters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        });
+    </script>
+</body>
+
+</html>
