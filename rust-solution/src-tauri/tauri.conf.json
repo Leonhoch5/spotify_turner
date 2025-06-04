@@ -1,0 +1,15 @@
+{
+  "build": {
+    "distDir": "../dist",
+    "devPath": "http://localhost:3000"
+  },
+  "tauri": {
+    "windows": [
+      {
+        "title": "Spotify Vinyl Player",
+        "width": 1000,
+        "height": 700
+      }
+    ]
+  }
+}

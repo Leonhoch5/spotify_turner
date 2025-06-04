@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Spotify Vinyl Player</title>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+</head>
+
+<body>
+    <h1>Spotify Vinyl Player</h1>
+    <button id="login">Login with Spotify</button>
+    <button onclick="callRust()">Call Rust Command</button>
+    <div id="status"></div>
+    <script>
+        // Spotify Auth (implicit grant for demo)
+        const clientId = 'YOUR_CLIENT_ID';
+        const redirectUri = window.location.origin + '/';
+        document.getElementById('login').onclick = () => {
+            const scopes = [
+                'streaming',
+                'user-read-email',
+                'user-read-private',
+                'user-modify-playback-state',
+                'user-read-playback-state'
+            ];
+            const url =
+                `https://accounts.spotify.com/authorize?client_id=${clientId}` +
+                `&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                `&scope=${encodeURIComponent(scopes.join(' '))}`;
+            window.location = url;
+        };
+
+        function getTokenFromUrl() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            return params.get('access_token');
+        }
+
+        const token = getTokenFromUrl();
+        if (token) {
+            document.getElementById('status').textContent = 'Authenticated!';
+            window.onSpotifyWebPlaybackSDKReady = () => {
+                const player = new Spotify.Player({
+                    name: 'Vinyl Player',
+                    getOAuthToken: cb => { cb(token); },
+                    volume: 0.5
+                });
+                player.addListener('ready', ({ device_id }) => {
+                    document.getElementById('status').textContent = 'Player ready! Device ID: ' + device_id;
+                });
+                player.connect();
+            };
+        }
+
+        // Example: Call Rust from JS
+        async function callRust() {
+            const response = await window.__TAURI__.invoke('greet', { name: 'from JS' });
+            alert(response);
+        }
+    </script>
+</body>
+
+</html>
