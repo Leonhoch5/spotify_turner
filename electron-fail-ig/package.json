@@ -15,7 +15,7 @@
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {
-    "electron": "github:castlabs/electron-releases#v36.0.0+wvcus",
+    "electron": "^28.2.5",
     "electron-builder": "^24.0.0"
   },
   "author": "Leon Gohn",
